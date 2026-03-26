@@ -1,4 +1,4 @@
-## 🛠 Tecnologías Principales
+## Tecnologías Principales
 
 - **Framework:** FastAPI (Python)
 - **Base de Datos:** MySQL
@@ -8,7 +8,7 @@
 
 ---
 
-## 📍 Resumen de Endpoints Principales
+## Resumen de Endpoints Principales
 
 _Toda la documentación exacta (cuerpos JSON, tipos de datos y respuestas) se autogenera. Una vez levantes el proyecto, visita `http://localhost:8000/docs` para ver la interfaz de Swagger y probar los endpoints._
 
@@ -41,7 +41,7 @@ _Toda la documentación exacta (cuerpos JSON, tipos de datos y respuestas) se au
 
 ---
 
-## 💻 Cómo levantar el entorno localmente (Frontend)
+## Cómo levantar el entorno localmente (Frontend)
 
 Si necesitas levantar el backend en tu máquina para probar la integración, no necesitas instalar Python ni bases de datos, solo **Docker**.
 
