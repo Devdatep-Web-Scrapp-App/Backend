@@ -1,0 +1,21 @@
+# Entornos virtuales y caché de Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+
+# Variables de entorno 
+.env
+
+# Sesiones de Chrome 
+chrome_data/
+chrome_sessions/
+chrome_sessions_tiktok/
+chrome_session_ig_mysql_automated/
+chrome_session_tiktok_mysql_automated/
+
+# Celery / Redis
+celerybeat-schedule
+*.pid
