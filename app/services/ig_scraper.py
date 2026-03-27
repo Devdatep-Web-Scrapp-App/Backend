@@ -31,9 +31,7 @@ class InstagramScraperService:
         os.makedirs(self.session_dir, exist_ok=True)
         self._init_pool()
 
-    # ------------------------------------------------------------------ #
-    #  Pool MySQL                                                          #
-    # ------------------------------------------------------------------ #
+    # Pool MySQL
 
     def _init_pool(self):
         try:
@@ -53,10 +51,6 @@ class InstagramScraperService:
         if not self.pool:
             self._init_pool()
         return self.pool.get_connection() if self.pool else None
-
-    # ------------------------------------------------------------------ #
-    #  Helpers                                                             #
-    # ------------------------------------------------------------------ #
 
     def _chunks(self, lst, n):
         for i in range(0, len(lst), n):
@@ -113,9 +107,7 @@ class InstagramScraperService:
         except Exception:
             return None
 
-    # ------------------------------------------------------------------ #
-    #  Consultas BD                                                        #
-    # ------------------------------------------------------------------ #
+    # Consultas BD
 
     def _obtener_snapshot_actual(self, conn):
         with conn.cursor(dictionary=True) as cursor:
@@ -195,9 +187,7 @@ class InstagramScraperService:
                 )
             conn.commit()
 
-    # ------------------------------------------------------------------ #
-    #  Selenium                                                            #
-    # ------------------------------------------------------------------ #
+    # Selenium
 
     def _build_driver(self):
         chrome_options = Options()
