@@ -30,3 +30,12 @@ class PasswordUpdate(BaseModel):
 class SocialConnect(BaseModel):
     username: str
     password: str
+
+# --- Schemas faltantes para el flujo de recuperación de contraseña ---
+
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str

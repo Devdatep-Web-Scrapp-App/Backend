@@ -11,6 +11,7 @@ def run_ig_scraper_task(app_user_id: int, ig_username: str, ig_password: str):
     scraper = InstagramScraperService(app_user_id, ig_username, ig_password)
     return scraper.run_extraction()
 
+
 @celery_app.task(name="run_tk_scraper_task")
 def run_tk_scraper_task(app_user_id: int, tk_username: str, tk_password: str):
     scraper = TiktokScraperService(app_user_id, tk_username, tk_password)
