@@ -86,7 +86,7 @@ def setup_tiktok(current_user: User = Depends(get_current_user)):
         decrypt(current_user.tk_password)
      )
     scraper.setup_session()
-    return {"message": "Sesion de TikTok configurada correctamente."}
+    return {"message": "Navegador abierto. Escanea el codigo QR con la app de TikTok en tu celular para iniciar sesion."}
 
 @router.post("/run-tiktok")
 def run_scraper_tk(

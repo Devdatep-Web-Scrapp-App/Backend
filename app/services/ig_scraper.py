@@ -52,7 +52,8 @@ class InstagramScraperService:
             self._init_pool()
         return self.pool.get_connection() if self.pool else None
 
-    def _chunks(self, lst, n):
+    @staticmethod
+    def _chunks(lst, n):
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
 
@@ -65,7 +66,8 @@ class InstagramScraperService:
             return True
         return False
 
-    def _hacer_scroll(self, driver, scroll_box, veces=3, pausa=0.5):
+    @staticmethod
+    def _hacer_scroll(driver, scroll_box, veces=3, pausa=0.5):
         for _ in range(veces):
             try:
                 driver.execute_script("""
@@ -84,7 +86,8 @@ class InstagramScraperService:
                     pass
             time.sleep(pausa)
 
-    def _esperar_carga(self, driver, timeout=8):
+    @staticmethod
+    def _esperar_carga(driver, timeout=8):
         try:
             WebDriverWait(driver, timeout).until(
                 EC.invisibility_of_element_located(

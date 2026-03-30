@@ -1,6 +1,7 @@
 import os
 import time
 import random
+import glob
 from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -16,12 +17,12 @@ from app.config import settings
 
 class TiktokScraperService:
     def __init__(self, app_user_id: int, tk_username: str, tk_password: str):
-        self.app_user_id  = app_user_id
-        self.tk_user      = tk_username
-        self.tk_password  = tk_password
+        self.app_user_id = app_user_id
+        self.tk_user = tk_username
+        self.tk_password = tk_password
         self.db_batch_size = 500
         self.table_snapshot = 'app_tk_followers_snapshot'
-        self.table_lost     = 'app_tk_followers_lost'
+        self.table_lost = 'app_tk_followers_lost'
         self.pool = None
 
         self.session_dir = os.path.join(
@@ -31,7 +32,7 @@ class TiktokScraperService:
         self._init_pool()
 
     # ------------------------------------------------------------------ #
-    #  Pool MySQL & Consultas BD                                         #
+    #  Pool MySQL & Consultas BD                                          #
     # ------------------------------------------------------------------ #
 
     def _init_pool(self):
@@ -53,7 +54,8 @@ class TiktokScraperService:
             self._init_pool()
         return self.pool.get_connection() if self.pool else None
 
-    def _chunks(self, lst, n):
+    @staticmethod
+    def _chunks(lst, n):
         for i in range(0, len(lst), n):
             yield lst[i:i + n]
 
@@ -136,7 +138,7 @@ class TiktokScraperService:
             conn.commit()
 
     # ------------------------------------------------------------------ #
-    #  Utilidades Selenium                                               #
+    #  Utilidades Selenium                                                #
     # ------------------------------------------------------------------ #
 
     def _tiene_sesion_guardada(self):
@@ -148,7 +150,8 @@ class TiktokScraperService:
             return True
         return False
 
-    def _hacer_scroll(self, driver, scroll_box, veces=5, pausa=1.5):
+    @staticmethod
+    def _hacer_scroll(driver, scroll_box, veces=5, pausa=1.5):
         for _ in range(veces):
             try:
                 driver.execute_script("""
@@ -167,7 +170,8 @@ class TiktokScraperService:
                     pass
             time.sleep(pausa)
 
-    def _obtener_numero_seguidores(self, driver):
+    @staticmethod
+    def _obtener_numero_seguidores(driver):
         try:
             time.sleep(2)
             el = driver.find_element(By.XPATH, "//strong[@title='Followers' or @data-e2e='followers-count']")
@@ -176,83 +180,133 @@ class TiktokScraperService:
         except Exception:
             return None
 
-    def _build_driver(self):
+    @staticmethod
+    def _login_popup_visible(driver) -> bool:
+        """Devuelve True si el loginContainer de TikTok está visible en pantalla."""
+        try:
+            lc = driver.find_element(By.ID, "loginContainer")
+            return lc.is_displayed()
+        except Exception:
+            return False
+
+    @staticmethod
+    def _verificar_sesion(driver) -> bool:
+        """
+        Espera hasta 8 segundos a que aparezca el loginContainer.
+        Si aparece → sesión inválida. Si no aparece en ese tiempo → sesión activa.
+        """
+        try:
+            lc = WebDriverWait(driver, 8).until(
+                EC.presence_of_element_located((By.ID, "loginContainer"))
+            )
+            return not lc.is_displayed()
+        except TimeoutException:
+            # loginContainer no apareció: sesión activa
+            return True
+
+    @staticmethod
+    def _get_driver_path():
+        os.environ["WDM_ARCH"] = "64"
+        driver_path = ChromeDriverManager().install()
+        if not driver_path.endswith(".exe"):
+            exe_candidates = glob.glob(
+                os.path.join(os.path.dirname(driver_path), "chromedriver*.exe")
+            )
+            if exe_candidates:
+                driver_path = exe_candidates[0]
+        return driver_path
+
+    _STEALTH_JS = """
+        Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+        Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+        Object.defineProperty(navigator, 'languages', {get: () => ['es-PE', 'es', 'en-US', 'en']});
+        Object.keys(window).forEach(key => {
+            if (key.startsWith('$cdc_') || key.startsWith('$chrome_')) delete window[key];
+        });
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) => (
+            parameters.name === 'notifications'
+                ? Promise.resolve({ state: Notification.permission })
+                : originalQuery(parameters)
+        );
+        window.chrome = { runtime: {}, loadTimes: function() {}, csi: function() {}, app: {} };
+    """
+
+    def _aplicar_stealth(self, driver):
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {"source": self._STEALTH_JS})
+
+    def _base_chrome_options(self) -> Options:
         chrome_options = Options()
         chrome_options.add_argument(f"--user-data-dir={self.session_dir}")
         chrome_options.add_argument("--profile-directory=Default")
         chrome_options.add_argument("--disable-notifications")
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-        chrome_options.add_experimental_option("useAutomationExtension", False)
+        chrome_options.add_argument("--lang=es-PE")
         chrome_options.add_argument("--window-size=1920,1080")
         chrome_options.add_argument("--no-sandbox")
         chrome_options.add_argument("--disable-dev-shm-usage")
-        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/134.0.0.0 Safari/537.36"
+        )
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option("useAutomationExtension", False)
+        return chrome_options
 
-        import glob
-        os.environ["WDM_ARCH"] = "64"
-        driver_path = ChromeDriverManager().install()
-        if not driver_path.endswith(".exe"):
-            exe_candidates = glob.glob(
-                os.path.join(os.path.dirname(driver_path), "chromedriver*.exe")
-            )
-            if exe_candidates:
-                driver_path = exe_candidates[0]
-        service = Service(driver_path)
-        return webdriver.Chrome(service=service, options=chrome_options)
+    def _build_driver(self, headless: bool = True):
+        chrome_options = self._base_chrome_options()
+        if headless:
+            chrome_options.add_argument("--headless=new")
+        else:
+            chrome_options.add_argument("--start-maximized")
+
+        service = Service(self._get_driver_path())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        self._aplicar_stealth(driver)
+        return driver
 
     # ------------------------------------------------------------------ #
-    #  Extraccion principal                                              #
+    #  Setup de sesión (login manual via QR)                             #
     # ------------------------------------------------------------------ #
 
     def setup_session(self):
-        """
-        Abre Chrome VISIBLE para que el usuario haga login manual en TikTok.
-        Guarda las cookies en disco. Después de esto run_extraction corre headless.
-        """
-        chrome_options = Options()
-        chrome_options.add_argument(f"--user-data-dir={self.session_dir}")
-        chrome_options.add_argument("--profile-directory=Default")
-        chrome_options.add_argument("--disable-notifications")
-        chrome_options.add_argument("--start-maximized")
-
-        import glob
-        os.environ["WDM_ARCH"] = "64"
-        driver_path = ChromeDriverManager().install()
-        if not driver_path.endswith(".exe"):
-            exe_candidates = glob.glob(
-                os.path.join(os.path.dirname(driver_path), "chromedriver*.exe")
-            )
-            if exe_candidates:
-                driver_path = exe_candidates[0]
-        service = Service(driver_path)
-        driver = webdriver.Chrome(service=service, options=chrome_options)
-
-        driver.get(f"https://www.tiktok.com/login")
-        print(f"[{self.tk_user}] Abre el navegador, inicia sesion manualmente en TikTok y navega a tu perfil.")
-        
+        driver = self._build_driver(headless=False)
         try:
-            # Esperamos hasta 5 minutos a que el usuario se loguee y el perfil sea visible
-            WebDriverWait(driver, 300).until(
-                EC.presence_of_element_located((By.XPATH, "//strong[@data-e2e='followers-count']"))
-            )
+            driver.get("https://www.tiktok.com/login")
+            print(f"[{self.tk_user}] Inicia sesion manualmente con usuario y contrasena en el navegador.")
+            print(f"[{self.tk_user}] Cuando hayas iniciado sesion y veas tu feed, presiona ENTER aqui.")
+            input(">>> ")
+
+            # Verificar que el login fue exitoso
+            try:
+                lc = driver.find_element(By.ID, "loginContainer")
+                if lc.is_displayed():
+                    print(f"[{self.tk_user}] El login no se completo. Intenta nuevamente.")
+                    return
+            except Exception:
+                pass
+
             print(f"[{self.tk_user}] Sesion de TikTok guardada correctamente.")
             time.sleep(3)
-        except TimeoutException:
-            print(f"[{self.tk_user}] Tiempo agotado esperando login manual.")
+        except Exception as e:
+            print(f"[{self.tk_user}] Error durante setup: {e}")
         finally:
             driver.quit()
+
+    # ------------------------------------------------------------------ #
+    #  Extracción principal                                               #
+    # ------------------------------------------------------------------ #
 
     def run_extraction(self):
         conn = self._conectar_mysql()
         if not conn:
             return "Database connection failed"
 
-        # Validar si existe sesión antes de lanzar headless
         if not self._tiene_sesion_guardada():
-            return "No hay sesion de TikTok guardada. Llama primero a setup_session() o usa el endpoint /scraper/setup-tiktok."
+            return "No hay sesion de TikTok guardada. Llama primero al endpoint /scraper/setup-tiktok."
 
-        driver = self._build_driver()
+        driver = self._build_driver(headless=True)
 
         try:
             # 1. NAVEGAR AL PERFIL
@@ -260,25 +314,26 @@ class TiktokScraperService:
             print(f"[{self.tk_user}] Accediendo al perfil...")
             time.sleep(6)
 
-            # 2. VERIFICAR SESION
-            try:
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//strong[@data-e2e='followers-count']"))
-                )
-                print(f"[{self.tk_user}] Sesion activa, continuando...")
-            except TimeoutException:
-                return "La sesion de TikTok expiro. Vuelve a ejecutar setup_session()."
+            # 2. VERIFICAR SESIÓN
+            # Espera a que aparezca loginContainer: si aparece = sesión expirada
+            if not self._verificar_sesion(driver):
+                return "La sesion de TikTok expiro. Vuelve a ejecutar /scraper/setup-tiktok."
+            print(f"[{self.tk_user}] Sesion activa, continuando...")
 
             # 3. TOTAL DE SEGUIDORES
             total_seg = self._obtener_numero_seguidores(driver) or 0
             print(f"[{self.tk_user}] Total segun perfil: {total_seg or 'desconocido'}")
 
-            # 4. ABRIR MODAL DE SEGUIDORES
+            # 4. ABRIR MODAL DE SEGUIDORES (JS click para evitar intercepción)
             try:
                 followers_btn = WebDriverWait(driver, 15).until(
-                    EC.element_to_be_clickable((By.XPATH, "//strong[@data-e2e='followers-count']"))
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//strong[@data-e2e='followers-count']")
+                    )
                 )
-                followers_btn.click()
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", followers_btn)
+                time.sleep(1)
+                driver.execute_script("arguments[0].click();", followers_btn)
                 time.sleep(4)
             except TimeoutException:
                 return "No se pudo abrir la lista de seguidores"
@@ -286,29 +341,39 @@ class TiktokScraperService:
             # 5. UBICAR CAJA DE SCROLL
             try:
                 scroll_box = WebDriverWait(driver, 15).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[contains(@class,'DivUserListContainer')]"))
+                    EC.presence_of_element_located(
+                        (By.XPATH, "//div[contains(@class,'DivUserListContainer')]")
+                    )
                 )
             except TimeoutException:
                 return "No se encontro el modal de seguidores"
 
             # 6. SCRAPING CON SCROLL
             seguidores_encontrados = {}
-            fecha_actual           = datetime.now().replace(microsecond=0)
-            intentos_sin_cambio    = 0
+            fecha_actual = datetime.now().replace(microsecond=0)
+            intentos_sin_cambio = 0
             max_intentos = max(8, min(30, total_seg // 50)) if total_seg else 10
 
             def extraer_visibles():
                 try:
-                    items = scroll_box.find_elements(By.XPATH, ".//li[.//p[contains(@class,'PUniqueId')]]")
+                    items = scroll_box.find_elements(
+                        By.XPATH, ".//li[.//p[contains(@class,'PUniqueId')]]"
+                    )
                     for item in items:
                         try:
-                            username = item.find_element(By.XPATH, ".//p[contains(@class,'PUniqueId')]").text.strip()
+                            username = item.find_element(
+                                By.XPATH, ".//p[contains(@class,'PUniqueId')]"
+                            ).text.strip()
                             try:
-                                full_name = item.find_element(By.XPATH, ".//span[contains(@class,'SpanNickname')]").text.strip()
+                                full_name = item.find_element(
+                                    By.XPATH, ".//span[contains(@class,'SpanNickname')]"
+                                ).text.strip()
                             except Exception:
                                 full_name = ""
                             if username and username not in seguidores_encontrados:
                                 seguidores_encontrados[username] = full_name
+                        except StaleElementReferenceException:
+                            continue
                         except Exception:
                             continue
                 except Exception as e:
@@ -329,15 +394,17 @@ class TiktokScraperService:
                     print(f"[{self.tk_user}] {ahora} capturados (+{ahora - antes})")
                 else:
                     intentos_sin_cambio += 1
+                    print(f"[{self.tk_user}] Sin cambios ({intentos_sin_cambio}/{max_intentos})")
 
                 if total_seg and ahora >= total_seg:
+                    print(f"[{self.tk_user}] Objetivo alcanzado ({total_seg})")
                     break
 
             print(f"[{self.tk_user}] Captura final: {len(seguidores_encontrados)}")
 
             # 7. COMPARAR CON SNAPSHOT EN BD
-            seguidores_hoy   = {u: fn for u, fn in seguidores_encontrados.items() if u and len(u) > 1}
-            snapshot_mysql   = self._obtener_snapshot_actual(conn)
+            seguidores_hoy = {u: fn for u, fn in seguidores_encontrados.items() if u and len(u) > 1}
+            snapshot_mysql = self._obtener_snapshot_actual(conn)
             seguidores_mysql = set(snapshot_mysql.keys())
 
             if not seguidores_mysql:

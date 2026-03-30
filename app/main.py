@@ -1,8 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import engine, Base
 
-from app.models import user, instagram, tiktok
+from app.database import engine, Base
 from app.routers import auth, stats, scraper, settings
 
 # Crear tablas si no existen en la bd

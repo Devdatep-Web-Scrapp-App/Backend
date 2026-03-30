@@ -15,6 +15,8 @@ chrome_sessions/
 chrome_sessions_tiktok/
 chrome_session_ig_mysql_automated/
 chrome_session_tiktok_mysql_automated/
+ig_sessions/*
+ig_sessions
 
 # Celery / Redis
 celerybeat-schedule
