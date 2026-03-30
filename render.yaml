@@ -1,16 +1,16 @@
 services:
 
-  # ── FastAPI ────────────────────────────────────────────────────────────────
   - type: web
     name: socialpulse-api
     runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python -m app
     envVars:
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: 3306
+        value: "3306"
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
@@ -22,31 +22,25 @@ services:
       - key: ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 60
+        value: "60"
       - key: ENCRYPTION_KEY
         sync: false
       - key: CELERY_BROKER_URL
-        fromService:
-          name: socialpulse-redis
-          type: redis
-          property: connectionString
+        sync: false
       - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: socialpulse-redis
-          type: redis
-          property: connectionString
+        sync: false
 
-  # ── Celery Worker ──────────────────────────────────────────────────────────
   - type: worker
     name: socialpulse-worker
     runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A app.tasks.celery_app worker --loglevel=info --pool=solo
     envVars:
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: 3306
+        value: "3306"
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
@@ -58,31 +52,25 @@ services:
       - key: ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 60
+        value: "60"
       - key: ENCRYPTION_KEY
         sync: false
       - key: CELERY_BROKER_URL
-        fromService:
-          name: socialpulse-redis
-          type: redis
-          property: connectionString
+        sync: false
       - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: socialpulse-redis
-          type: redis
-          property: connectionString
+        sync: false
 
-  # ── Celery Beat ────────────────────────────────────────────────────────────
   - type: worker
     name: socialpulse-beat
     runtime: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: celery -A app.tasks.celery_app beat --loglevel=info
     envVars:
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: 3306
+        value: "3306"
       - key: DB_USER
         sync: false
       - key: DB_PASSWORD
@@ -94,21 +82,14 @@ services:
       - key: ALGORITHM
         value: HS256
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 60
+        value: "60"
       - key: ENCRYPTION_KEY
         sync: false
       - key: CELERY_BROKER_URL
-        fromService:
-          name: socialpulse-redis
-          type: redis
-          property: connectionString
+        sync: false
       - key: CELERY_RESULT_BACKEND
-        fromService:
-          name: socialpulse-redis
-          type: redis
-          property: connectionString
+        sync: false
 
-  # ── Redis ──────────────────────────────────────────────────────────────────
   - type: redis
     name: socialpulse-redis
     plan: free
