@@ -28,7 +28,8 @@ class PasswordUpdate(BaseModel):
     new_password: str
 
 class SocialConnect(BaseModel):
-    username: str  # Solo username, sin password — el login es manual via Selenium
+    username: str
+    password: Optional[str] = None  # requerido para Instagram (instagrapi), opcional para TikTok
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr

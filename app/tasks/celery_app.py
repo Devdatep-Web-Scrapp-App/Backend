@@ -14,8 +14,8 @@ celery_app.conf.update(task_track_started=True)
 
 
 @celery_app.task(name="run_ig_scraper_task")
-def run_ig_scraper_task(app_user_id: int, ig_username: str):
-    scraper = InstagramScraperService(app_user_id, ig_username)
+def run_ig_scraper_task(app_user_id: int, ig_username: str, ig_password: str):
+    scraper = InstagramScraperService(app_user_id, ig_username, ig_password)
     return scraper.run_extraction()
 
 @celery_app.task(name="run_tk_scraper_task")

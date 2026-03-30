@@ -5,9 +5,7 @@ from app.database import get_db
 from app.services.auth_service import get_current_user
 from app.models.user import User
 from app.tasks.celery_app import run_ig_scraper_task, run_tk_scraper_task, celery_app
-from app.services.ig_scraper import InstagramScraperService
-from app.services.tk_scraper import TiktokScraperService
-
+from app.services.crypto_service import decrypt
 
 router = APIRouter(prefix="/scraper", tags=["Scraper"])
 
@@ -22,18 +20,31 @@ def _tarea_en_curso(task_id: str | None) -> bool:
 
 @router.post("/setup-instagram")
 def setup_instagram(current_user: User = Depends(get_current_user)):
-    if not current_user.ig_username:
-        raise HTTPException(status_code=400, detail="Username de Instagram no configurado.")
-    InstagramScraperService(current_user.id, current_user.ig_username).setup_session()
-    return {"message": "Sesion de Instagram configurada correctamente."}
+    if not current_user.ig_username or not current_user.ig_password:
+        raise HTTPException(status_code=400, detail="Conecta tu cuenta de Instagram primero.")
+    from app.services.ig_scraper import InstagramScraperService
+    try:
+        scraper = InstagramScraperService(
+            current_user.id,
+            current_user.ig_username,
+            decrypt(current_user.ig_password)
+        )
+        msg = scraper.setup_session()
+        return {"message": msg}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/run-instagram")
 def run_scraper_ig(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if not current_user.ig_username:
-        raise HTTPException(status_code=400, detail="Username de Instagram no configurado.")
+    if not current_user.ig_username or not current_user.ig_password:
+        raise HTTPException(status_code=400, detail="Conecta tu cuenta de Instagram primero.")
     if _tarea_en_curso(current_user.ig_task_id):
         raise HTTPException(status_code=409, detail="Ya hay un scraping de Instagram en curso.")
-    task = run_ig_scraper_task.delay(current_user.id, current_user.ig_username)
+    task = run_ig_scraper_task.delay(
+        current_user.id,
+        current_user.ig_username,
+        decrypt(current_user.ig_password)
+    )
     current_user.ig_task_id = task.id
     db.commit()
     return {"message": "Scraping de Instagram iniciado", "task_id": task.id}
@@ -52,8 +63,9 @@ def status_ig(current_user: User = Depends(get_current_user)):
 def setup_tiktok(current_user: User = Depends(get_current_user)):
     if not current_user.tk_username:
         raise HTTPException(status_code=400, detail="Username de TikTok no configurado.")
+    from app.services.tk_scraper import TiktokScraperService
     TiktokScraperService(current_user.id, current_user.tk_username).setup_session()
-    return {"message": "Navegador abierto. Inicia sesion manualmente y presiona ENTER en la terminal."}
+    return {"message": "Navegador abierto. Inicia sesion manualmente."}
 
 @router.post("/run-tiktok")
 def run_scraper_tk(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

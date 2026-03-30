@@ -10,8 +10,11 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100))
 
-    # Username de redes sociales — el login es manual via Selenium, no se guarda password
+    # Instagram — usuario y contraseña encriptada con Fernet (necesaria para instagrapi)
     ig_username = Column(String(100), nullable=True)
+    ig_password = Column(String(255), nullable=True)
+
+    # TikTok — solo username, el login es manual via Selenium
     tk_username = Column(String(100), nullable=True)
 
     # Ultima tarea Celery lanzada por red social
