@@ -10,15 +10,11 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100))
 
-    # Credenciales de redes sociales (encriptadas con Fernet)
+    # Username de redes sociales — el login es manual via Selenium, no se guarda password
     ig_username = Column(String(100), nullable=True)
-    ig_password = Column(String(255), nullable=True)
-
     tk_username = Column(String(100), nullable=True)
-    tk_password = Column(String(255), nullable=True)
 
     # Ultima tarea Celery lanzada por red social
-    # Permite verificar si hay un scraping en curso antes de lanzar otro
     ig_task_id = Column(String(255), nullable=True)
     tk_task_id = Column(String(255), nullable=True)
 

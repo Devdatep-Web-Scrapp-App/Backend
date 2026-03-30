@@ -16,10 +16,9 @@ from app.config import settings
 
 
 class TiktokScraperService:
-    def __init__(self, app_user_id: int, tk_username: str, tk_password: str):
+    def __init__(self, app_user_id: int, tk_username: str):
         self.app_user_id = app_user_id
         self.tk_user = tk_username
-        self.tk_password = tk_password
         self.db_batch_size = 500
         self.table_snapshot = 'app_tk_followers_snapshot'
         self.table_lost = 'app_tk_followers_lost'

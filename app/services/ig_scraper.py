@@ -16,13 +16,12 @@ from app.config import settings
 
 
 class InstagramScraperService:
-    def __init__(self, app_user_id: int, ig_username: str, ig_password: str):
-        self.app_user_id  = app_user_id
-        self.ig_user      = ig_username
-        self.ig_password  = ig_password
+    def __init__(self, app_user_id: int, ig_username: str):
+        self.app_user_id = app_user_id
+        self.ig_user = ig_username
         self.db_batch_size = 500
         self.table_snapshot = 'app_ig_followers_snapshot'
-        self.table_lost     = 'app_ig_followers_lost'
+        self.table_lost = 'app_ig_followers_lost'
         self.pool = None
 
         self.session_dir = os.path.join(

@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse, Token, PasswordResetRequest, PasswordResetConfirm
 from app.config import settings
-from app.services.auth_service import get_password_hash, verify_password, create_access_token, timedelta
+from app.services.auth_service import get_password_hash, verify_password, create_access_token, timedelta, get_current_user
 from jose import JWTError, jwt
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -70,3 +70,7 @@ def reset_password(request: PasswordResetConfirm, db: Session = Depends(get_db))
     user.hashed_password = get_password_hash(request.new_password)
     db.commit()
     return {"message": "Contraseña restablecida con éxito"}
+
+@router.get("/me", response_model=UserResponse)
+def me(current_user: User = Depends(get_current_user)):
+    return current_user

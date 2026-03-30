@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routers import auth, stats, scraper, settings
+from app.routers import auth, stats, scraper, settings, autosync
 
 # Crear tablas si no existen en la bd
 Base.metadata.create_all(bind=engine)
@@ -22,6 +22,8 @@ app.include_router(auth.router)
 app.include_router(scraper.router)
 app.include_router(stats.router)
 app.include_router(settings.router)
+app.include_router(autosync.router)
+
 
 @app.get("/")
 def root():

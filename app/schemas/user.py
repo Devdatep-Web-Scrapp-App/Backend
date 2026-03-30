@@ -28,10 +28,7 @@ class PasswordUpdate(BaseModel):
     new_password: str
 
 class SocialConnect(BaseModel):
-    username: str
-    password: str
-
-# --- Schemas faltantes para el flujo de recuperación de contraseña ---
+    username: str  # Solo username, sin password — el login es manual via Selenium
 
 class PasswordResetRequest(BaseModel):
     email: EmailStr
