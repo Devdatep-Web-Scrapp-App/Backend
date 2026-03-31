@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -10,16 +10,17 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100))
 
-    # Instagram — usuario y contraseña encriptada con Fernet (necesaria para instagrapi)
+    # Instagram — credenciales encriptadas + sesión JSON de instagrapi
     ig_username = Column(String(100), nullable=True)
     ig_password = Column(String(255), nullable=True)
+    ig_session  = Column(Text, nullable=True)
 
-    # TikTok — solo username, el login es manual via Selenium
+    # TikTok — solo username, login manual via Selenium
     tk_username = Column(String(100), nullable=True)
 
-    # Ultima tarea Celery lanzada por red social
+    # Ultima tarea Celery por red social
     ig_task_id = Column(String(255), nullable=True)
     tk_task_id = Column(String(255), nullable=True)
 
-    is_active = Column(Boolean, default=True)
+    is_active  = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
