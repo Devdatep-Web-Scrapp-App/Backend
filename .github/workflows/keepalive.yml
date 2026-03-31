@@ -1,4 +1,4 @@
-name: Keep Render Alive
+name: Keep Alive
 
 on:
   schedule:
@@ -8,5 +8,14 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping API
+      - name: Ping Render API
         run: curl -f https://socialpulse-api.onrender.com/
+
+      - name: Ping Aiven MySQL
+        run: |
+          mysql -h ${{ secrets.DB_HOST }} \
+                -P ${{ secrets.DB_PORT }} \
+                -u ${{ secrets.DB_USER }} \
+                -p${{ secrets.DB_PASSWORD }} \
+                -e "SELECT 1;" \
+                --ssl-mode=REQUIRED
